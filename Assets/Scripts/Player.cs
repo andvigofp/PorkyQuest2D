@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using TMPro;
 using UnityEngine;
 
 public class Player : MonoBehaviour
@@ -13,6 +14,8 @@ public class Player : MonoBehaviour
     public LayerMask groundLayer;
 
     private Animator animator;
+    private int coints;
+    public TMP_Text textCoints;
 
 
     private float move;
@@ -44,5 +47,15 @@ public class Player : MonoBehaviour
     private void FixedUpdate()
     {
         isGrounted = Physics2D.OverlapCircle(groundCheck.position, groundRadius, groundLayer);
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if(collision.transform.CompareTag("Coin"))
+        {
+            Destroy(collision.gameObject);
+            coints++;
+            textCoints.text = coints.ToString();
+        }
     }
 }
