@@ -13,6 +13,18 @@ PrefabInstance:
       value: background
       objectReference: {fileID: 0}
     - target: {fileID: 3626916397498700004, guid: 1696f65136b4ee84eb7205a6c9e401c4, type: 3}
+      propertyPath: m_Color.b
+      value: 0.7590245
+      objectReference: {fileID: 0}
+    - target: {fileID: 3626916397498700004, guid: 1696f65136b4ee84eb7205a6c9e401c4, type: 3}
+      propertyPath: m_Color.g
+      value: 0.7590245
+      objectReference: {fileID: 0}
+    - target: {fileID: 3626916397498700004, guid: 1696f65136b4ee84eb7205a6c9e401c4, type: 3}
+      propertyPath: m_Color.r
+      value: 0.78113204
+      objectReference: {fileID: 0}
+    - target: {fileID: 3626916397498700004, guid: 1696f65136b4ee84eb7205a6c9e401c4, type: 3}
       propertyPath: m_SortingOrder
       value: 1
       objectReference: {fileID: 0}
