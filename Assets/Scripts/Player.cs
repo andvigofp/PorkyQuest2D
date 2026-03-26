@@ -29,7 +29,11 @@ public class Player : MonoBehaviour
  
     private Vector3 posicionInicial;
 
-    
+    private int comboStep = 0;
+
+    public Transform attackPoint;
+
+    public LayerMask enemyLayer;
 
     void Start()
     {
@@ -62,9 +66,41 @@ public class Player : MonoBehaviour
         rb2D.linearVelocity = new Vector2(rb2D.linearVelocity.x, jumoForce);
     }
 
+    if (Keyboard.current.jKey.wasPressedThisFrame && isGrounted)
+    {
+        comboStep++;
+
+        if (comboStep == 1)
+        {
+            animator.SetTrigger("Attack1");
+            Atacar();
+        }
+        else if (comboStep == 2)
+        {
+            animator.SetTrigger("Attack2");
+            Atacar();
+            comboStep = 0;
+        }
+    }
+
         animator.SetFloat("Speed", Mathf.Abs(move));
         animator.SetFloat("VerticalVelocity", rb2D.linearVelocity.y);
         animator.SetBool("IsGrounded", isGrounted);
+        animator.SetTrigger("Hit");
+    }
+
+    void Atacar()
+    {
+        Collider2D[] enemigos = Physics2D.OverlapCircleAll(
+        attackPoint.position,
+        0.5f,
+        enemyLayer
+    );
+
+        foreach (Collider2D enemigo in enemigos)
+    {
+        enemigo.GetComponent<EnemyController>()?.RecibeDanio(1);
+    }
     }
 
     void Respawn()
