@@ -8,6 +8,7 @@ TagManager:
   - Coin
   - Spikes
   - Barrel
+  - FallZone
   layers:
   - Default
   - TransparentFX

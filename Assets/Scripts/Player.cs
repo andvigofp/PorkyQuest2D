@@ -2,9 +2,11 @@ using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem;
 
 public class Player : MonoBehaviour
 {
+   
     public float speed = 5;
     private Rigidbody2D rb2D;
 
@@ -27,6 +29,8 @@ public class Player : MonoBehaviour
  
     private Vector3 posicionInicial;
 
+    
+
     void Start()
     {
         rb2D = GetComponent<Rigidbody2D>();
@@ -39,22 +43,24 @@ public class Player : MonoBehaviour
 
     void Update()
     {
-        move = Input.GetAxisRaw("Horizontal");
-        rb2D.linearVelocity = new Vector2(move * speed, rb2D.linearVelocity.y);
+     move = 0;
 
-        if(move != 0)
-            transform.localScale = new Vector3(Mathf.Sign(move),1,1);
+    // Movimiento izquierda/derecha
+    if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed)
+        move = -1;
 
-        if(Input.GetButtonDown("Jump") && isGrounted)
-        {
-            rb2D.linearVelocity = new Vector2(rb2D.linearVelocity.x, jumoForce);
-        }
+    if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed)
+        move = 1;
 
-       if(transform.position.y < -10)
-        {
-            RecibeDanio(1);
-            Respawn();
-        }
+    // Girar personaje
+    if (move != 0)
+        transform.localScale = new Vector3(Mathf.Sign(move), 1, 1);
+
+    // Salto
+    if ((Keyboard.current.spaceKey.wasPressedThisFrame) && isGrounted)
+    {
+        rb2D.linearVelocity = new Vector2(rb2D.linearVelocity.x, jumoForce);
+    }
 
         animator.SetFloat("Speed", Mathf.Abs(move));
         animator.SetFloat("VerticalVelocity", rb2D.linearVelocity.y);
@@ -69,6 +75,10 @@ public class Player : MonoBehaviour
 
     private void FixedUpdate()
     {
+        // Movimiento horizontal SOLO AQUÍ
+        rb2D.linearVelocity = new Vector2(move * speed, rb2D.linearVelocity.y);
+
+        // Comprobación suelo
         isGrounted = Physics2D.OverlapCircle(groundCheck.position, groundRadius, groundLayer);
     }
 
@@ -86,6 +96,13 @@ public class Player : MonoBehaviour
         if(collision.transform.CompareTag("Spikes"))
         {
             RecibeDanio(1);
+        }
+
+         // -------- CAÍDA --------
+        if(collision.transform.CompareTag("FallZone"))
+        {
+            RecibeDanio(1);
+            Respawn();
         }
 
         // -------- BARRIL --------

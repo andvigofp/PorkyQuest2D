@@ -41,15 +41,16 @@ public class EnemyController : MonoBehaviour
         if (muerto) return;
 
         float distancia = Vector2.Distance(transform.position, player.position);
+        float diferenciaY = Mathf.Abs(transform.position.y - player.position.y);
 
-        if (distancia < detectionRadius)
+        if (distancia < detectionRadius && diferenciaY < 1f)
         {
-            playerDetectado = true;
-            PerseguirJugador();
+        playerDetectado = true;
+        PerseguirJugador();
         }
         else
         {
-            playerDetectado = false;
+        playerDetectado = false;
         }
     }
 

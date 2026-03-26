@@ -6284,11 +6284,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 977070890417533635, guid: b3b6c6c9cd77c7047a476bf416ad8d49, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -9.49
+      value: -9.482
       objectReference: {fileID: 0}
     - target: {fileID: 977070890417533635, guid: b3b6c6c9cd77c7047a476bf416ad8d49, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.078
+      value: 0.088
       objectReference: {fileID: 0}
     - target: {fileID: 977070890417533635, guid: b3b6c6c9cd77c7047a476bf416ad8d49, type: 3}
       propertyPath: m_LocalPosition.z
@@ -7306,7 +7306,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 364721640811649320, guid: 7323250934626504495511bc0f45e0f1, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.078
+      value: 0.084
       objectReference: {fileID: 0}
     - target: {fileID: 364721640811649320, guid: 7323250934626504495511bc0f45e0f1, type: 3}
       propertyPath: m_LocalPosition.z
@@ -7572,6 +7572,14 @@ PrefabInstance:
     - target: {fileID: 4662286122929641928, guid: a24d035a60cdeeb43ad3ddfbe162ed76, type: 3}
       propertyPath: m_Name
       value: Square
+      objectReference: {fileID: 0}
+    - target: {fileID: 4662286122929641928, guid: a24d035a60cdeeb43ad3ddfbe162ed76, type: 3}
+      propertyPath: m_TagString
+      value: FallZone
+      objectReference: {fileID: 0}
+    - target: {fileID: 6361564433134021117, guid: a24d035a60cdeeb43ad3ddfbe162ed76, type: 3}
+      propertyPath: m_Enabled
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7106317875765424791, guid: a24d035a60cdeeb43ad3ddfbe162ed76, type: 3}
       propertyPath: m_LocalPosition.x
