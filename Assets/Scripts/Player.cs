@@ -99,6 +99,7 @@ public class Player : MonoBehaviour
         foreach (Collider2D enemigo in enemigos)
     {
         enemigo.GetComponent<EnemyController>()?.RecibeDanio(1);
+        enemigo.GetComponent<EnemyPigController>()?.RecibeDanio(1);
     }
     }
 

@@ -1,12 +1,13 @@
 using UnityEngine;
 using System.Collections;
 
-public class EnemyMushroomController : MonoBehaviour
+public class EnemyPigController : MonoBehaviour
 {
     public Transform player;
     public float detectionRadius = 3f;
     public float attackDistance = 1f;
-    public float speed = 3f;
+
+    public float speed = 2f;
 
     public int vida = 3;
     public GameObject prefabVidaExtra;
@@ -16,6 +17,8 @@ public class EnemyMushroomController : MonoBehaviour
     public float tiempoEsperaPatrulla = 2f;
 
     public float attackCooldown = 1.5f;
+
+    public LayerMask playerLayer;
 
     private Transform objetivoActual;
     private Rigidbody2D rb;
@@ -28,6 +31,9 @@ public class EnemyMushroomController : MonoBehaviour
 
     private bool isMovingRight = true;
     private float tiempoUltimoAtaque;
+
+    public Transform attackPoint;
+    public float attackRadius = 0.5f;
 
     void Start()
     {
@@ -65,6 +71,11 @@ public class EnemyMushroomController : MonoBehaviour
         {
             playerDetectado = false;
         }
+
+        // ANIMACIONES (como tú lo tienes)
+        animator.SetFloat("VelocidadHorizontal", Mathf.Abs(rb.linearVelocity.x));
+        animator.SetFloat("VelocidadVertical", rb.linearVelocity.y);
+        animator.SetBool("EnSuelo", true); // si luego quieres lo hacemos real
     }
 
     IEnumerator Patrullar()
@@ -75,16 +86,9 @@ public class EnemyMushroomController : MonoBehaviour
             {
                 float distancia = Mathf.Abs(transform.position.x - objetivoActual.position.x);
 
-                if (distancia < 0.3f)
+                if (distancia < 0.2f)
                 {
-                    transform.position = new Vector3(
-                        objetivoActual.position.x,
-                        transform.position.y,
-                        transform.position.z
-                    );
-
-                    rb.linearVelocity = Vector2.zero;
-                    animator.SetFloat("Speed", 0);
+                    rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
 
                     yield return new WaitForSeconds(tiempoEsperaPatrulla);
 
@@ -98,15 +102,11 @@ public class EnemyMushroomController : MonoBehaviour
                         objetivoActual = puntoA;
                         isMovingRight = false;
                     }
-
-                    yield return null;
                 }
 
                 float direccionX = Mathf.Sign(objetivoActual.position.x - transform.position.x);
 
-                rb.MovePosition(rb.position + new Vector2(direccionX, 0) * speed * Time.deltaTime);
-
-                animator.SetFloat("Speed", Mathf.Abs(direccionX * speed));
+                rb.linearVelocity = new Vector2(direccionX * speed, rb.linearVelocity.y);
 
                 transform.localScale = new Vector3(isMovingRight ? -1 : 1, 1, 1);
             }
@@ -117,41 +117,41 @@ public class EnemyMushroomController : MonoBehaviour
 
     void PerseguirJugador()
     {
-        Vector2 direccion = (player.position - transform.position).normalized;
+        float direccionX = Mathf.Sign(player.position.x - transform.position.x);
 
-        isMovingRight = direccion.x > 0;
+        isMovingRight = direccionX > 0;
 
-        rb.MovePosition(rb.position + new Vector2(direccion.x, 0) * speed * Time.deltaTime);
-
-        animator.SetFloat("Speed", Mathf.Abs(direccion.x * speed));
+        rb.linearVelocity = new Vector2(direccionX * speed, rb.linearVelocity.y);
 
         transform.localScale = new Vector3(isMovingRight ? -1 : 1, 1, 1);
     }
 
     void Atacar()
     {
-        rb.linearVelocity = Vector2.zero;
-        animator.SetFloat("Speed", 0);
+        rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
 
         if (Time.time >= tiempoUltimoAtaque + attackCooldown)
         {
             tiempoUltimoAtaque = Time.time;
-            animator.SetTrigger("attack");
+
+            animator.SetTrigger("Atacar");
         }
     }
 
     //LLAMADO DESDE ANIMATION EVENT
-    public void HacerDanio()
+   public void HacerDanio()
+{
+        Collider2D hit = Physics2D.OverlapCircle(
+        attackPoint.position,
+        attackRadius,
+        playerLayer
+    );
+
+    if (hit != null)
     {
-        if (player == null) return;
-
-        float distancia = Vector2.Distance(transform.position, player.position);
-
-        if (distancia <= attackDistance + 0.3f)
-        {
-            player.GetComponent<Player>()?.RecibeDanio(1);
-        }
+        hit.GetComponent<Player>()?.RecibeDanio(1);
     }
+}
 
     // ---------------- RECIBIR DAÑO ----------------
     public void RecibeDanio(int danio)
@@ -162,7 +162,7 @@ public class EnemyMushroomController : MonoBehaviour
 
         vida -= danio;
 
-        animator.SetTrigger("hit");
+        animator.SetTrigger("Golpe");
 
         rb.linearVelocity = Vector2.zero;
         rb.AddForce(new Vector2(-transform.localScale.x * 2f, 1f), ForceMode2D.Impulse);
@@ -173,7 +173,7 @@ public class EnemyMushroomController : MonoBehaviour
         {
             muerto = true;
 
-            animator.SetBool("muerto", true);
+            animator.SetBool("Ocupado", true);
             rb.linearVelocity = Vector2.zero;
 
             StartCoroutine(EliminarDespues());
@@ -197,7 +197,6 @@ public class EnemyMushroomController : MonoBehaviour
         golpeado = false;
     }
 
-    // ---------------- DAÑO AL PLAYER (COLISIÓN) ----------------
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.transform.CompareTag("Player"))
@@ -206,7 +205,6 @@ public class EnemyMushroomController : MonoBehaviour
         }
     }
 
-    // ---------------- MUERTE ----------------
     IEnumerator EliminarDespues()
     {
         yield return new WaitForSeconds(1f);
@@ -222,5 +220,17 @@ public class EnemyMushroomController : MonoBehaviour
     public void EliminarCuerpo()
     {
         Destroy(gameObject);
+    }
+
+    public void AtaqueTermino()
+    {
+    
+    }
+
+
+    void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, attackDistance);
     }
 }
