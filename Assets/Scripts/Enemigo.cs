@@ -7,7 +7,7 @@ public class EnemyController : MonoBehaviour
     public float detectionRadius = 3f;
     public float speed = 2f;
 
-    public int vida = 2;
+    public int vida = 3;
     public GameObject prefabVidaExtra;
 
     public Transform puntoA;
@@ -20,8 +20,11 @@ public class EnemyController : MonoBehaviour
 
     private bool playerDetectado = false;
     private bool muerto = false;
+    private bool golpeado = false;
 
-    private bool isMovingRight = true; 
+    private bool isMovingRight = true;
+
+    private SpriteRenderer sr;
 
     void Start()
     {
@@ -29,11 +32,11 @@ public class EnemyController : MonoBehaviour
         animator = GetComponent<Animator>();
 
         objetivoActual = puntoB;
-
-        //dirección inicial
         isMovingRight = (puntoB.position.x > transform.position.x);
 
         StartCoroutine(Patrullar());
+
+        sr = GetComponent<SpriteRenderer>();
     }
 
     void Update()
@@ -45,12 +48,12 @@ public class EnemyController : MonoBehaviour
 
         if (distancia < detectionRadius && diferenciaY < 1f)
         {
-        playerDetectado = true;
-        PerseguirJugador();
+            playerDetectado = true;
+            PerseguirJugador();
         }
         else
         {
-        playerDetectado = false;
+            playerDetectado = false;
         }
     }
 
@@ -60,91 +63,113 @@ public class EnemyController : MonoBehaviour
         {
             if (!playerDetectado)
             {
-            //SOLO EN X (clave)
-            float distancia = Mathf.Abs(transform.position.x - objetivoActual.position.x);
+                float distancia = Mathf.Abs(transform.position.x - objetivoActual.position.x);
 
-            if (distancia < 0.3f)
-            {
-                //FORZAR POSICIÓN EXACTA
-                transform.position = new Vector3(
-                    objetivoActual.position.x,
-                    transform.position.y,
-                    transform.position.z
-                );
-
-                //PARAR COMPLETAMENTE
-                rb.linearVelocity = Vector2.zero;
-
-                //IDLE
-                animator.SetBool("enMovimiento", false);
-
-                yield return new WaitForSeconds(tiempoEsperaPatrulla);
-
-                //CAMBIO DE DIRECCIÓN REAL
-                if (objetivoActual == puntoA)
+                if (distancia < 0.3f)
                 {
-                    objetivoActual = puntoB;
-                    isMovingRight = true;
-                }
-                else
-                {
-                    objetivoActual = puntoA;
-                    isMovingRight = false;
+                    transform.position = new Vector3(
+                        objetivoActual.position.x,
+                        transform.position.y,
+                        transform.position.z
+                    );
+
+                    rb.linearVelocity = Vector2.zero;
+                    animator.SetBool("enMovimiento", false);
+
+                    yield return new WaitForSeconds(tiempoEsperaPatrulla);
+
+                    if (objetivoActual == puntoA)
+                    {
+                        objetivoActual = puntoB;
+                        isMovingRight = true;
+                    }
+                    else
+                    {
+                        objetivoActual = puntoA;
+                        isMovingRight = false;
+                    }
+
+                    yield return null;
                 }
 
-                yield return null; // evita ejecución doble
+                float direccionX = Mathf.Sign(objetivoActual.position.x - transform.position.x);
+
+                rb.MovePosition(rb.position + new Vector2(direccionX, 0) * speed * Time.deltaTime);
+
+                animator.SetBool("enMovimiento", true);
+
+                transform.localScale = new Vector3(isMovingRight ? -1 : 1, 1, 1);
             }
 
-            //DIRECCIÓN SOLO HORIZONTAL
-            float direccionX = Mathf.Sign(objetivoActual.position.x - transform.position.x);
-
-            //MOVIMIENTO CONTROLADO
-            rb.MovePosition(rb.position + new Vector2(direccionX, 0) * speed * Time.deltaTime);
-
-            //ANIMACIÓN CORRER
-            animator.SetBool("enMovimiento", true);
-
-            //GIRO CORRECTO
-            transform.localScale = new Vector3(isMovingRight ? -1 : 1, 1, 1);
-        }
-
-        yield return null;
+            yield return null;
         }
     }
-    
+
     void PerseguirJugador()
     {
         Vector2 direccion = (player.position - transform.position).normalized;
 
-        //calcular dirección REAL
         isMovingRight = direccion.x > 0;
 
         rb.MovePosition(rb.position + new Vector2(direccion.x, 0) * speed * Time.deltaTime);
 
         animator.SetBool("enMovimiento", true);
 
-        //GIRO CORRECTO
         transform.localScale = new Vector3(isMovingRight ? -1 : 1, 1, 1);
     }
 
+    // ---------------- RECIBIR DAÑO ----------------
     public void RecibeDanio(int danio)
     {
-        if (muerto) return;
+        if (muerto || golpeado) return;
+
+        golpeado = true;
 
         vida -= danio;
+
+         rb.linearVelocity = Vector2.zero;
+        rb.AddForce(new Vector2(-transform.localScale.x * 2f, 1f), ForceMode2D.Impulse);
+
+         StartCoroutine(FlashBlanco());
 
         if (vida <= 0)
         {
             muerto = true;
 
             animator.SetBool("muerto", true);
-
             rb.linearVelocity = Vector2.zero;
 
             StartCoroutine(EliminarDespues());
         }
+        else
+        {
+            StartCoroutine(ResetGolpe());
+        }
     }
 
+    IEnumerator FlashBlanco()
+    {
+        sr.color = Color.red;
+        yield return new WaitForSeconds(0.1f);
+        sr.color = Color.white;
+    }
+
+    IEnumerator ResetGolpe()
+    {
+        yield return new WaitForSeconds(0.2f);
+        golpeado = false;
+    }
+
+    // ---------------- DAÑO AL PLAYER ----------------
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.transform.CompareTag("Player"))
+        {
+            collision.transform.GetComponent<Player>()?.RecibeDanio(1);
+        }
+    }
+
+    // ---------------- MUERTE ----------------
     IEnumerator EliminarDespues()
     {
         yield return new WaitForSeconds(1f);
@@ -154,6 +179,11 @@ public class EnemyController : MonoBehaviour
             Instantiate(prefabVidaExtra, transform.position, Quaternion.identity);
         }
 
+        Destroy(gameObject);
+    }
+
+    public void EliminarCuerpo()
+    {
         Destroy(gameObject);
     }
 }

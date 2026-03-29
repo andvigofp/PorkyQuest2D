@@ -86,7 +86,6 @@ public class Player : MonoBehaviour
         animator.SetFloat("Speed", Mathf.Abs(move));
         animator.SetFloat("VerticalVelocity", rb2D.linearVelocity.y);
         animator.SetBool("IsGrounded", isGrounted);
-        animator.SetTrigger("Hit");
     }
 
     void Atacar()
@@ -111,7 +110,7 @@ public class Player : MonoBehaviour
 
     private void FixedUpdate()
     {
-        // Movimiento horizontal SOLO AQUÍ
+        // Movimiento horizontal
         rb2D.linearVelocity = new Vector2(move * speed, rb2D.linearVelocity.y);
 
         // Comprobación suelo
@@ -171,13 +170,15 @@ public class Player : MonoBehaviour
 
         vida -= danio;
 
+        animator.SetTrigger("Hit");
+
         textoVidas.text = vida.ToString();
 
         if(vida <= 0)
         {
             Morir();
         }
-    }
+}
 
     // ---------------- GANAR VIDA ----------------
 
