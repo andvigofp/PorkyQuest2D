@@ -157,8 +157,6 @@ public class Player : MonoBehaviour
 
             collision.GetComponent<Animator>().enabled = true;
             Destroy(collision.gameObject, 0.5f);
-
-            RecibeDanio(1);
         }
     }
 
