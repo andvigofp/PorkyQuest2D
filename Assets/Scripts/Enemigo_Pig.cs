@@ -20,6 +20,10 @@ public class EnemyPigController : MonoBehaviour
 
     public LayerMask playerLayer;
 
+    public Transform attackPoint;
+    public float attackRadius = 0.5f;
+    public float fuerzaEmpuje = 3f;
+
     private Transform objetivoActual;
     private Rigidbody2D rb;
     private Animator animator;
@@ -31,9 +35,6 @@ public class EnemyPigController : MonoBehaviour
 
     private bool isMovingRight = true;
     private float tiempoUltimoAtaque;
-
-    public Transform attackPoint;
-    public float attackRadius = 0.5f;
 
     void Start()
     {
@@ -49,7 +50,7 @@ public class EnemyPigController : MonoBehaviour
 
     void Update()
     {
-        if (muerto) return;
+        if (muerto || golpeado) return;
 
         float distancia = Vector2.Distance(transform.position, player.position);
         float diferenciaY = Mathf.Abs(transform.position.y - player.position.y);
@@ -72,12 +73,13 @@ public class EnemyPigController : MonoBehaviour
             playerDetectado = false;
         }
 
-        // ANIMACIONES (como tú lo tienes)
+        //ANIMACIONES
         animator.SetFloat("VelocidadHorizontal", Mathf.Abs(rb.linearVelocity.x));
         animator.SetFloat("VelocidadVertical", rb.linearVelocity.y);
-        animator.SetBool("EnSuelo", true); // si luego quieres lo hacemos real
+        animator.SetBool("EnSuelo", true);
     }
-
+    
+    //Patrullar hasta Posicon A Hasta B
     IEnumerator Patrullar()
     {
         while (!muerto)
@@ -115,6 +117,7 @@ public class EnemyPigController : MonoBehaviour
         }
     }
 
+    //Persigue al Jugador si esta ceraca de su radio
     void PerseguirJugador()
     {
         float direccionX = Mathf.Sign(player.position.x - transform.position.x);
@@ -126,6 +129,7 @@ public class EnemyPigController : MonoBehaviour
         transform.localScale = new Vector3(isMovingRight ? -1 : 1, 1, 1);
     }
 
+    //Ataca al enemigo si esta cerca de su radio, salta la aniamcion
     void Atacar()
     {
         rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
@@ -139,20 +143,36 @@ public class EnemyPigController : MonoBehaviour
     }
 
     //LLAMADO DESDE ANIMATION EVENT
-   public void HacerDanio()
-{
-        Collider2D hit = Physics2D.OverlapCircle(
-        attackPoint.position,
-        attackRadius,
-        playerLayer
-    );
-
-    if (hit != null)
+    public void HacerDanio()
     {
-        hit.GetComponent<Player>()?.RecibeDanio(1);
-    }
-}
+        Collider2D hit = Physics2D.OverlapCircle(
+            attackPoint.position,
+            attackRadius,
+            playerLayer
+        );
 
+        if (hit != null)
+        {
+            Player playerScript = hit.GetComponent<Player>();
+
+            if (playerScript != null)
+            {
+                playerScript.RecibeDanio(1);
+
+                Rigidbody2D playerRb = hit.GetComponent<Rigidbody2D>();
+
+                if (playerRb != null)
+                {
+                    Vector2 direccion = (hit.transform.position - transform.position).normalized;
+
+                    playerRb.linearVelocity = Vector2.zero;
+                    playerRb.AddForce(direccion * fuerzaEmpuje, ForceMode2D.Impulse);
+                }
+            }
+        }
+    }
+
+    //Si Recibe Daño salta la animacion de daño
     // ---------------- RECIBIR DAÑO ----------------
     public void RecibeDanio(int danio)
     {
@@ -171,12 +191,7 @@ public class EnemyPigController : MonoBehaviour
 
         if (vida <= 0)
         {
-            muerto = true;
-
-            animator.SetBool("Ocupado", true);
-            rb.linearVelocity = Vector2.zero;
-
-            StartCoroutine(EliminarDespues());
+            Morir();
         }
         else
         {
@@ -184,6 +199,19 @@ public class EnemyPigController : MonoBehaviour
         }
     }
 
+    //Si muere el enemigo salta la animacion de muerte
+    void Morir()
+    {
+        muerto = true;
+
+        animator.SetBool("Ocupado", true);
+
+        rb.linearVelocity = Vector2.zero;
+
+        StartCoroutine(EliminarDespues());
+    }
+
+    //Si recibe el golpe el enemigo emula la animacion de recibir golpe a color rojo
     IEnumerator FlashBlanco()
     {
         sr.color = Color.red;
@@ -217,20 +245,16 @@ public class EnemyPigController : MonoBehaviour
         Destroy(gameObject);
     }
 
-    public void EliminarCuerpo()
-    {
-        Destroy(gameObject);
-    }
-
     public void AtaqueTermino()
     {
-    
+        // opcional (para evitar error de AnimationEvent)
     }
-
 
     void OnDrawGizmos()
     {
+        if (attackPoint == null) return;
+
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackDistance);
+        Gizmos.DrawWireSphere(attackPoint.position, attackRadius);
     }
 }
