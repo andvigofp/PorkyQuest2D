@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -6,9 +5,11 @@ using UnityEngine.InputSystem;
 
 public class Player : MonoBehaviour
 {
-   
-    public float speed = 5;
     private Rigidbody2D rb2D;
+    private Animator animator;
+
+    //Referencia al movimiento
+    private Player_Mov playerMov;
 
     public float jumoForce = 4;
     private bool isGrounted;
@@ -16,58 +17,64 @@ public class Player : MonoBehaviour
     public float groundRadius = 0.1f;
     public LayerMask groundLayer;
 
-    private Animator animator;
-
     private int coints;
     public TMP_Text textCoints;
 
-   public int vida = 3;
-   public TMP_Text textoVidas;
-   public bool muerto = false;
+    public int vida = 3;
+    public TMP_Text textoVidas;
+    public bool muerto = false;
 
-    private float move;
- 
     private Vector3 posicionInicial;
 
     private int comboStep = 0;
 
     public Transform attackPoint;
-
     public LayerMask enemyLayer;
 
     void Start()
     {
         rb2D = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
-        
+        playerMov = GetComponent<Player_Mov>();
+
         posicionInicial = transform.position;
-        // Mostrar vida inicial
         textoVidas.text = vida.ToString();
     }
 
     void Update()
     {
-     move = 0;
+        //Detectar suelo
+        isGrounted = Physics2D.OverlapCircle(
+            groundCheck.position,
+            groundRadius,
+            groundLayer
+        );
 
-    // Movimiento izquierda/derecha
-    if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed)
-        move = -1;
+        //Movimient
+        float move = Mathf.Abs(playerMov.GetMove());
 
-    if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed)
-        move = 1;
-
-    // Girar personaje
-    if (move != 0)
-        transform.localScale = new Vector3(Mathf.Sign(move), 1, 1);
-
-    // Salto
-    if ((Keyboard.current.spaceKey.wasPressedThisFrame) && isGrounted)
-    {
-        rb2D.linearVelocity = new Vector2(rb2D.linearVelocity.x, jumoForce);
+        //Animaciones
+        animator.SetFloat("Speed", move);
+        animator.SetFloat("VerticalVelocity", rb2D.linearVelocity.y);
+        animator.SetBool("IsGrounded", isGrounted);
     }
 
-    if (Keyboard.current.jKey.wasPressedThisFrame && isGrounted)
+    // ---------------- SALTO (INPUT SYSTEM) ----------------
+
+   public void OnJump()
     {
+        if (isGrounted)
+        {
+            rb2D.linearVelocity = new Vector2(rb2D.linearVelocity.x, jumoForce);
+        }
+    }
+
+    // ---------------- ATAQUE ----------------
+
+   public void OnAttack()
+    {
+        if (!isGrounted) return;
+
         comboStep++;
 
         if (comboStep == 1)
@@ -83,25 +90,22 @@ public class Player : MonoBehaviour
         }
     }
 
-        animator.SetFloat("Speed", Mathf.Abs(move));
-        animator.SetFloat("VerticalVelocity", rb2D.linearVelocity.y);
-        animator.SetBool("IsGrounded", isGrounted);
-    }
-
     void Atacar()
     {
         Collider2D[] enemigos = Physics2D.OverlapCircleAll(
-        attackPoint.position,
-        0.5f,
-        enemyLayer
-    );
+            attackPoint.position,
+            0.5f,
+            enemyLayer
+        );
 
         foreach (Collider2D enemigo in enemigos)
-    {
-        enemigo.GetComponent<EnemyController>()?.RecibeDanio(1);
-        enemigo.GetComponent<EnemyPigController>()?.RecibeDanio(1);
+        {
+            enemigo.GetComponent<EnemyController>()?.RecibeDanio(1);
+            enemigo.GetComponent<EnemyPigController>()?.RecibeDanio(1);
+        }
     }
-    }
+
+    // ---------------- RESPAWN ----------------
 
     void Respawn()
     {
@@ -109,77 +113,57 @@ public class Player : MonoBehaviour
         rb2D.linearVelocity = Vector2.zero;
     }
 
-    private void FixedUpdate()
-    {
-        // Movimiento horizontal
-        rb2D.linearVelocity = new Vector2(move * speed, rb2D.linearVelocity.y);
-
-        // Comprobación suelo
-        isGrounted = Physics2D.OverlapCircle(groundCheck.position, groundRadius, groundLayer);
-    }
+    // ---------------- TRIGGERS ----------------
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        // -------- MONEDAS --------
-        if(collision.transform.CompareTag("Coin"))
+        if (collision.CompareTag("Coin"))
         {
             Destroy(collision.gameObject);
             coints++;
             textCoints.text = coints.ToString();
         }
 
-        // -------- PINCHOS --------
-        if(collision.transform.CompareTag("Spikes"))
+        if (collision.CompareTag("Spikes"))
         {
             RecibeDanio(1);
         }
 
-         // -------- CAÍDA --------
-        if(collision.transform.CompareTag("FallZone"))
+        if (collision.CompareTag("FallZone"))
         {
             RecibeDanio(1);
             Respawn();
         }
 
-        // -------- BARRIL --------
-        if(collision.transform.CompareTag("Barrel"))
+        if (collision.CompareTag("Barrel"))
         {
             Vector2 knockbackDir = (rb2D.position - (Vector2)collision.transform.position).normalized;
 
             rb2D.linearVelocity = Vector2.zero;
             rb2D.AddForce(knockbackDir * 3, ForceMode2D.Impulse);
 
-            BoxCollider2D[] colliders = collision.gameObject.GetComponents<BoxCollider2D>();
-
-            foreach(BoxCollider2D col in colliders)
-            {
+            foreach (var col in collision.GetComponents<BoxCollider2D>())
                 col.enabled = false;
-            }
 
             collision.GetComponent<Animator>().enabled = true;
             Destroy(collision.gameObject, 0.5f);
         }
     }
 
-    // ---------------- RECIBIR DAÑO ----------------
+    // ---------------- DAÑO ----------------
 
     public void RecibeDanio(int danio)
     {
-        if(muerto) return;
+        if (muerto) return;
 
         vida -= danio;
-
         animator.SetTrigger("Hit");
 
         textoVidas.text = vida.ToString();
 
-        if(vida <= 0)
-        {
+        if (vida <= 0)
             Morir();
-        }
-}
-
-    // ---------------- GANAR VIDA ----------------
+    }
 
     public void GanarVida(int cantidad)
     {
@@ -187,14 +171,10 @@ public class Player : MonoBehaviour
         textoVidas.text = vida.ToString();
     }
 
-    // ---------------- MORIR ----------------
-
     void Morir()
     {
         muerto = true;
-
         Debug.Log("Jugador muerto");
-
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 }
